@@ -51,6 +51,24 @@ fn wait_for_device(port: &mut Box<dyn SerialPort>) {
     }
 }
 
+fn receive_data(port: &mut Box<dyn SerialPort>) {
+    let mut bytes: u32 = 0;
+    while bytes == 0 {
+        bytes = match port.bytes_to_read() {
+            Ok(b) => b,
+            Err(e) => panic!("An error occured: {}", e),
+        }
+    }
+    let mut buffer: Vec<u8> = vec![0; bytes.try_into().unwrap()];
+    let _ = port.read(buffer.as_mut_slice());
+    match str::from_utf8(&buffer) {
+        Ok(s) => {
+            println!("Message: {}", s);
+        },
+        Err(e) => panic!("An error occured: {}", e),
+    }
+}
+
 fn main() {
     let ports = serialport::available_ports().expect("No ports found!");
     for p in ports {
@@ -61,11 +79,33 @@ fn main() {
         .open()
         .expect("Failed to open port");
 
-    wait_for_device(&mut port);
+    //wait_for_device(&mut port);
 
-    for i in 0..5 {
-        communication(&mut port);
-    }
+    // for i in 0..5 {
+    //     communication(&mut port);
+    // }
+
+    //wait_for_device(&mut port);
+
+    let mut bytes: Vec<u8> = vec![];
+    bytes.push(0x01);
+    bytes.push(0x00);
+    bytes.push(0x00);
+    bytes.push(0x00);
+    bytes.push(0x00);
+    bytes.push(0x00);
+    bytes.push(0x00);
+    bytes.push(0x00);
+    bytes.push(0x05);
+    bytes.push(b'H');
+    bytes.push(b'e');
+    bytes.push(b'l');
+    bytes.push(b'l');
+    bytes.push(b'o');
+
+    port.write(bytes.as_ref()).expect("An error occured sending hello message");
+
+    receive_data(&mut port);
 
     println!("End of commnication");
 
